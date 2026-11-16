@@ -349,15 +349,9 @@
       overview: document.getElementById("overview"),
       content: document.getElementById("summaryContent"), gallery: document.getElementById("photoGallery"),
       voiceNotes: document.getElementById("voiceNotes"),
-      monthNav: document.getElementById("monthNav"),
-      trackingNotice: document.getElementById("trackingNotice")
+      monthNav: document.getElementById("monthNav")
     };
-    const trackingConsentKey = "monthly-summary-tracking-consent";
-    const savedTrackingChoice = sessionStorage.getItem(trackingConsentKey);
-    let visitLoggingEnabled = savedTrackingChoice !== null;
-    // let ipCollectionAllowed = savedTrackingChoice === "accepted";
     let visitorIp;
-    // elements.trackingNotice.hidden = savedTrackingChoice !== null;
 
     function renderMonthNav() {
       const visibleMonths = monthlyData
@@ -423,9 +417,7 @@
       elements.content.classList.remove("fade-in");
       void elements.content.offsetWidth; // restart the short transition
       elements.content.classList.add("fade-in");
-      if (visitLoggingEnabled) {
-        void logPageView(data.month);
-      }
+      void logPageView(data.month);
     }
 
     async function logPageView(pageName, includeIp) {
