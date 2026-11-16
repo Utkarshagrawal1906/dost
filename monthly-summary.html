@@ -417,7 +417,7 @@
       elements.content.classList.remove("fade-in");
       void elements.content.offsetWidth; // restart the short transition
       elements.content.classList.add("fade-in");
-      void logPageView(data.month);
+      void logPageView(data.month, true);
     }
 
     async function logPageView(pageName, includeIp) {
