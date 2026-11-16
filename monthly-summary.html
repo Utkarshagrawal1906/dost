@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="A simple, editable monthly summary dashboard." />
+  <title>Monthly Summary</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #667085;
+      --paper: #ffffff;
+      --canvas: #f5f3ef;
+      --line: #e9e5df;
+      --primary: #55725c;
+      --primary-dark: #3f5b46;
+      --shadow: 0 24px 70px rgba(44, 54, 43, .11);
+    }
+
+    * { box-sizing: border-box; }
+    html { min-width: 320px; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 56px 0;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 12px;
+      color: var(--primary-dark);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before {
+      width: 8px;
+      height: 8px;
+      border-radius: 99px;
+      background: var(--primary);
+      content: "";
+    }
+    h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.05; letter-spacing: -.055em; }
+    .intro { max-width: 620px; margin: 16px 0 30px; color: var(--muted); font-size: 1.04rem; line-height: 1.6; }
+
+    .summary {
+      overflow: hidden;
+      border: 1px solid rgba(221, 219, 211, .9);
+      border-radius: 24px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+    .summary-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 25px 32px;
+      border-bottom: 1px solid var(--line);
+    }
+    .month-label { margin: 0; color: var(--muted); font-size: .82rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+    #monthHeading { margin: 5px 0 0; font-size: clamp(1.55rem, 4vw, 2.15rem); letter-spacing: -.04em; }
+
+    .month-nav { display: flex; gap: 8px; overflow-x: auto; margin: 0; padding: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); overscroll-behavior-x: contain; scrollbar-width: thin; }
+    .month-nav button { flex: 0 0 auto; width: auto; min-height: 38px; padding: 0 12px; white-space: nowrap; }
+    .month-nav button[aria-current="true"] { border-color: var(--primary); color: #fff; background: var(--primary); }
+    .month-nav button[aria-current="true"]:hover { border-color: var(--primary-dark); background: var(--primary-dark); }
+
+    .summary-body { display: grid; gap: 24px; padding: 32px; }
+    .photo-gallery { display: grid; align-content: start; gap: 16px; width: 100%; min-width: 0; }
+    .photo-gallery[hidden] { display: none; }
+    .catalogue-image { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch; overflow: hidden; margin: 0; border: 1px solid var(--line); border-radius: 16px; background: #f3f4f0; }
+    .catalogue-image img { display: block; width: 100%; max-width: 100%; max-height: min(100vh, 720px); height: auto; object-fit: contain; }
+    .catalogue-image figcaption { display: flex; flex-direction: column; justify-content: center; gap: 9px; min-width: 0; padding: 20px; border-left: 1px solid var(--line); color: var(--muted); background: #fbfaf8; font-size: .92rem; line-height: 1.6; }
+    .catalogue-image figcaption p { margin: 0; }
+    .month-content { min-width: 0; padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: #fbfaf8; }
+    .voice-notes { display: grid; gap: 16px; margin-bottom: 24px; }
+    .voice-notes[hidden] { display: none; }
+    .voice-note { display: grid; gap: 8px; }
+    .voice-note p { margin: 0; color: var(--ink); font-size: .9rem; font-weight: 700; }
+    .voice-note audio { display: block; width: 100%; }
+    .lead { margin: 0 0 26px; color: #596456; font-size: 1.05rem; line-height: 1.75; }
+
+    .footer { display: grid; gap: 14px; padding: 19px 32px; border-top: 1px solid var(--line); background: #fbfaf8; }
+    .edit-note { margin: 0; color: var(--muted); font-size: .83rem; line-height: 1.4; }
+    .controls { display: flex; justify-content: space-between; gap: 10px; }
+    button { appearance: none; display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 42px; padding: 0 15px; border: 1px solid #dce1ec; border-radius: 10px; color: var(--ink); background: var(--paper); cursor: pointer; font: inherit; font-size: .9rem; font-weight: 700; transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease; }
+    button:hover { border-color: var(--primary); box-shadow: 0 5px 14px rgba(85, 114, 92, .16); transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    button:focus-visible { outline: 3px solid rgba(85, 114, 92, .32); outline-offset: 2px; }
+    button svg { width: 15px; height: 15px; }
+    .next { border-color: var(--primary); color: #fff; background: var(--primary); }
+    .next:hover { border-color: var(--primary-dark); background: var(--primary-dark); }
+    .tracking-notice { position: fixed; right: 16px; bottom: 16px; z-index: 10; display: flex; align-items: center; gap: 16px; width: min(660px, calc(100% - 32px)); padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); box-shadow: var(--shadow); }
+    .tracking-notice[hidden] { display: none; }
+    .tracking-notice h2 { margin: 0 0 4px; font-size: .95rem; }
+    .tracking-notice p { margin: 0; color: var(--muted); font-size: .82rem; line-height: 1.45; }
+    .tracking-actions { display: flex; flex: 0 0 auto; gap: 8px; }
+    .tracking-actions button { width: auto; min-height: 38px; padding: 0 12px; }
+    .fade-in { animation: appear .28s ease both; }
+    @keyframes appear { from { opacity: .15; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 680px) {
+      .page { width: min(100% - 20px, 1180px); padding: 28px 0; }
+      .summary { border-radius: 19px; }
+      .summary-head, .summary-body, .footer { padding: 22px; }
+      .summary-body { gap: 20px; }
+      .catalogue-image figcaption { gap: 6px; padding: 13px; font-size: .84rem; }
+      .month-content { padding: 20px; }
+      .footer { align-items: stretch; flex-direction: column; }
+      .controls { display: grid; grid-template-columns: 1fr 1fr; }
+      button { width: 100%; padding: 0 8px; }
+      .tracking-notice { right: 10px; bottom: 10px; left: 10px; flex-direction: column; align-items: stretch; width: auto; gap: 12px; }
+      .tracking-actions { justify-content: flex-end; }
+      .tracking-actions button { width: auto; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <p class="eyebrow">Our Friendship</p>
+    <section class="summary" aria-labelledby="monthHeading">
+      <header class="summary-head">
+        <div>
+          <p class="month-label" id="monthLabel">Conversation Started</p>
+          <h2 id="monthHeading">January 2026</h2>
+        </div>
+      </header>
+
+      <div class="summary-body" id="summaryContent">
+        <div class="photo-gallery" id="photoGallery" aria-label="Image catalogue"></div>
+        <div class="month-content">
+          <div class="voice-notes" id="voiceNotes" hidden>
+            <div class="voice-note">
+              <p>Please listen this with a cool mind</p>
+              <audio controls preload="metadata">
+                <source src="voice note.mp3" type="audio/mpeg" />
+                Your browser does not support audio playback.
+              </audio>
+            </div>
+            <div class="voice-note">
+              <p>I Recorded this in July for your birthday but I am a very bad singer</p>
+              <audio controls preload="metadata">
+                <source src="tera yaar.m4a" type="audio/mp4" />
+                Your browser does not support audio playback.
+              </audio>
+            </div>
+          </div>
+          <p class="lead" id="overview"></p>
+        </div>
+      </div>
+
+      <footer class="footer">
+        <!-- <p class="edit-note">Add images to <code>catalogueImagesByMonth</code>. Each image gets its own text box; add an optional <code>text</code> to an image entry to customize it.</p> -->
+        <nav class="controls" aria-label="Month navigation">
+          <button id="previous" type="button" aria-label="Show previous month">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg> Previous
+          </button>
+          <button class="next" id="next" type="button" aria-label="Show next month">Next
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </nav>
+        <nav class="month-nav" id="monthNav" aria-label="Jump to a month"></nav>
+      </footer>
+    </section>
+  </main>
+
+  <!-- <aside class="tracking-notice" id="trackingNotice" aria-labelledby="trackingTitle" aria-describedby="trackingDescription" hidden>
+    <div>
+      <h2 id="trackingTitle">Privacy notice</h2>
+      <p id="trackingDescription">This page records the month you view and visit time in Firebase. Select OK to also send your public IP address, looked up by ipify (a third-party service). Select Not now to continue without IP collection. Your choice lasts for this browser tab session.</p>
+    </div>
+    <div class="tracking-actions">
+      <button id="declineTracking" type="button">Not now</button>
+      <button class="next" id="acceptTracking" type="button">OK</button>
+    </div>
+  </aside> -->
+
+  <script>
+    // EDIT IMAGES: add image objects to a month's array. Optional text appears beside that image.
+    const catalogueImagesByMonth = {
+      "July 2025": [
+        { src: "july 1.jpeg", text: "Our Conversation Started" },
+        { src: "july 2.jpeg", text: "Tum kitni humor me baat karti thi, pata nahi wo khushi kaha gayi" },
+        { src: "july 3.jpeg", text: "I don't know how I discussed something personal in our first conversation, I generally don't do that" },
+        { src: "july 4.jpeg", text: "I asked to meet, you said because of rain your father won't send you out. later you agreed to meet at company bagh, I started waiting patiently for diwali to meet you after 14 years." },
+        { src: "july 5.jpeg", text: "You yourself asked to talk whenever I want" }
+      ],
+      "August 2025": [
+        { src: "aug 1.jpeg", text: "Our next whatsapp conversation is started by you only" },
+        { src: "aug 2.jpeg", text: "You told about that telegram person, I didn't judged you and tried to help you. I asked my roomate in morning that someone from telegram is disturbing my one female friend. He said she must be lying and just trying to get attention. I said, I believe her, I started trying to find solution to problem alone even I didn't had time for it." }
+    ],
+      "September 2025": [{ src: "sep 1.jpeg", text: "I was distressed that day and thought about you to talk, because I knew you won't judge me, even said sorry for my annoying nature that day. You gave me assurance which was truly valuable for me" }],
+      "October 2025": [{ src: "oct 1.jpeg", text: "Your first birthday for me. I wished you dusshera as well but you didn't replied until I wished you birthday. Later I told you about my app launch" },
+        { src: "oct 2.jpeg", text: "I told about my brother, only one friend knew about him before you. I trusted you and thought you would understand." },
+        { src: "oct 3.jpeg", text: "I asked you to meet, you said you were busy. I understood and respected your decision. But I was hurt and again started waiting." }
+      ],
+      "November 2025": [{ src: "nov 1.jpeg", text: "That day you won my heart, I became emotional after seeing your message. I told to abhishek as well that khushi gave me so many ideas for my app and helped me a lot when I met abhishek in nov or dec." }],
+      "December 2025": [{ src: "dec 1.jpeg", text: "I again asked to meet, this time I already expecting some other excuse because of past incidents, I was hurt again but can't say much. I kept my hurt in my heart." },
+        { src: "dec 2.jpeg", text: "You suddenly apologized, I said you don't need to. I expected same thing for me as well in future." }
+      ],
+      "January 2026": [{ src: "jan 1.jpeg", text: "We thought about starting a social media account, now it feels funny to think about that now. But I felt there is someone who is ready to support me in every situation." },
+        { src: "jan 2.jpeg", text: "You randomly asked my birthday, main thing is you remembered it" },
+        { src: "jan 3.jpeg", text: "You supported me when I resigned and I was grateful for your encouragement." }
+      ],
+      "February 2026": [{ src: "feb 1.jpeg", text: "I promised you if I ever thought about you more than a friend I will tell you. I fulilled it under my anxiety not in my correct mind" },
+        { src: "feb 2.jpeg", text: "Pehle tum choti choti baate bhi puchti rehti thi, mujhe bahut accha lagta tha ye sab." },
+        { src: "feb 3.jpeg", text: "Pehle hum voice notes pe bhi baat karte the phir tumne bilkul band kar diya" },
+        { src: "feb 4.jpeg", text: "I don't know why you asked but I felt good when you asked this" },
+        { src: "feb 5.jpeg", text: "I told about my love perspective and I tried to gave you same treatment like I give to my family" },
+        { src: "feb 6.jpeg", text: "You asked about your importance, I got nervous and confused but gave a honest answer" },
+        { src: "feb 7.jpeg", text: "Mujhe laga nahi tha ki tum mujhe kabhi itna impact karogi" },
+        { src: "feb 8.jpeg", text: "First time I felt your restlessness but I was quite busy, later you told me that you got angry because of this" },
+        { src: "feb 9.jpeg", text: "You gave a beautiful message where you told you don't feel comfortable while talking to boys and I am the only exception. This message is still valuable to me" },
+        { src: "feb 10.jpeg", text: "You told me about your MBA and I asked you to get exposure in corporate world, you later told me that you liked my care very much" },
+        { src: "feb 11.jpeg", text: "I told you real reason for not being emotional, Every person don't face these much big problems which I have faced in my life, I thought you will understand but you always mocked me for my logical behaviour" },
+        { src: "feb 12.jpeg", text: "I thought someday I will tell you me deepest darkest problem" },
+        { src: "feb 13.jpeg", text: "You asked for my singing but you didn't told about your own singing, it was little frustating to ask simple thing multiple times. Today I will fulfill your this wish as well." },
+        { src: "feb 14.jpeg", text: "I again told my desire to meet you once with reason" },
+        { src: "feb 15.jpeg", text: "You promised that one day you will ask me to meet and just after that you made fun of my emotions, I didn't expected that you will make fun of my emotions" }
+      ],
+      "March 2026": [{ src: "mar 1.jpeg", text: "You asked what you can improve in yourself and later deleted it" },
+        { src: "mar 2.jpeg", text: "I told you that if home situation improved I will start taking things more emotionally, you asked me to become emotionally vulnerable and today I am highly emotionally vulnerable" },
+        { src: "mar 3.jpeg", text: "I felt I am watching match with you, tuly special feeling" },
+        { src: "mar 40.jpeg", text: "You told your reason and I accepted it" },
+        { src: "mar 41.jpeg", text: "I told about my incident aur uske baad tumne meri khichai kari" },
+        { src: "mar 5.jpeg", text: "This conversation was playful but I was little confused with what you meant. But I just remembered one statement: once a commitment always a commitment" },
+        { src: "mar 6.jpeg", text: "Ye baat mujhe bohot buri lagi thi, mene uss time nahi kaha but mujhe laga ki tum mujhpe shak kar rahi ho ki me tumhari photos ka misuse karunga." }
+      ],
+      "April 2026": [{ src: "apr 1.jpeg", text: "I used to tell you about my day, problems and other things" },
+        { src: "apr 2.jpeg", text: "You promised you will always resolve our conflict and never leave me, do you remember?" },
+        { src: "apr 3.jpeg", text: "Now your whole family knew about me but for me none of them know about you" },
+        { src: "apr 4.jpeg", text: "I shared my embarrassing moment with you, I started trying my best to express my emotions" },
+        { src: "apr 5.jpeg", text: "I always praised your skills and achievements and you too praised mine like a true friend" },
+        { src: "apr 6.jpeg", text: "I know I did mistakes but I always treated you like my family" },
+        { src: "apr 7.jpeg", text: "I loves those moments when you roast me" },
+        { src: "apr 8.jpeg", text: "I came to know that you don't like waiting, you felt it is rude behaviour" },
+        { src: "apr 9.jpeg", text: "But you kept me on waiting for days, even you stopped replying. You got angry when I said we will talk in night in feb, just think how much anger I felt when I waited for days" }
+      ],
+      "May 2026": [{ src: "may 1.jpeg", text: "You blocked me, I was in metro when i received your message, I forgot my stop and moved ahead, I started typing. I was not hurt that you didn't wanted to call, I was hurt that you could have said all this without blocking me. I thought did I demanded any unfair thing? because of your this step I experienced trauma and panic attacks for months because this was the first someone broke my trust whom I trusted with both heart and mind" },
+        { src: "may 3.jpeg", text: "Itna sabke baad bhi mene hi relation thik kiya" },
+        { src: "may 2.jpeg", text: "You gave your reasons and told you are not the perfect person, you can do mistakes under anxiety and anger, so these things are not allowed to me? I cannot say anything under anxiety?" },
+      ],
+      "June 2026": [{ src: "june 1.jpeg", text: "It was not just about another social media, I felt you ignored me" },
+        { src: "june 2.jpeg", text: "I was so much frusted with my trauma and panic attacks that I thought about to block you, I wrote this message on 12 June but didn't send you" },
+        { src: "june 3.jpeg", text: "You Treated me very well on my birthday, I dropped the idea to end this friendship" },
+        { src: "june 4.jpeg", text: "In june ending you told about your rashes, later you told me that was because of your depression" }
+      ],
+      "July 2026": [{ src: "july 261.jpeg", text: "You shared your portfolio website with me, I felt glad that our bond is recovering" },
+        { src: "july 262.jpeg", text: "I finally told you about my trauma and panic attacks" },
+        { src: "july 263.jpeg", text: "You gave feedback for my new app as well like before" }
+      ],
+      "August 2026": [{ src: "aug 261.jpeg", text: "I was little shocked that how suddenly you are asking everything" },
+        { src: "aug 262.jpeg", text: "I didn't told you about some FD's which I saved for emergency, I later felt bad and thought I will tell you but didn't got chance" },
+        { src: "aug 263.jpeg", text: "I told you you are special and like family to me that's why I told you" },
+        { src: "aug 264.jpeg", text: "I told you that I don't have trust issues with you" },
+        { src: "aug 265.jpeg", text: "You yourself said you can discuss non-veg topics" },
+        { src: "aug 266.jpeg", text: "I told about my other friend, you mocked me by saying I made up the story, so I sent you her photo" },
+        { src: "aug 267.jpeg", text: "I can understand you have past traumas but did you ever realized that because of that how many times trust assurance I have given to you?" },
+        { src: "aug 268.jpeg", text: "You told about your depression, I tried to understand and help you without judgement" },
+        { src: "aug 269.jpeg", text: "This time I really felt bad, you hide something about abhishek from me" },
+        { src: "aug 2610.jpeg", text: "I thought because of me you got panic attack, I was not able to sleep that night" },
+        { src: "aug 26.jpeg", text: "You wanted to return the favour but I denied because I was afraid, mujhe laga pata nahi tum abhi bhi thik ho ya nahi, me phone pe ese me koi emotional baat to nahi kar sakta tha. This favour is still with me" },
+        { src: "aug 2611.jpeg", text: "You ensured that my secrets are safe with you but" },
+        { src: "aug 2612.jpeg", text: "I asked you to not to chat with me after 11 PM even it was my favourite time to chat with you" },
+        { src: "aug 2613.jpeg", text: "I told you that I can't remain angry to you, you directly connected that with partner love" },
+        { src: "aug 2614.jpeg", text: "You gave assurance that even if I loved you, you would still keep friendship same. I never loved you as a partner even on 2 oct I never said that I love you as a partner" },
+        { src: "aug 26141.jpeg", text: "I asked to trust uncle or your family and tell them about your trauma, you told uncle and uncle asked you to remove me from your life. That is really unfair, hope you understand" },
+        { src: "aug 2615.jpeg", text: "I respected your boundaries and never asked that thing again" },
+        { src: "aug 2616.jpeg", text: "When took this test of me it really made me afraid that this friendship should not become something more because I was not ready to pollute this friendship and move for relationship" },
+        { src: "aug 2617.jpeg", text: "I lied because I realized that you were in a guilt trip, I got a panic attack last night because I thought I am losing this friendship as you got uncomfortable when I was not able to accept your partner love" },
+      ],
+      "September 2026": [{ src: "sep 261.jpeg", text: "Mene tumhe bataya tha ki me office se travel kar raha tha, restaurent me hu, phir bhi tumse chat kar raha tha kyuki mujhe malum tha fever me tum jaldi soo jaogi, isiliye me jitna kar sakta tha utna kiya uss time" },
+        { src: "sep 262.jpeg", text: "Did you even realized that how much rude you were on that day, I felt you just kicked all my love and care because I was emotionally unavailable yesterday. Phir bhi mene tumse kuch nahi kaha aur chup chaap apni beizzati sehen karli, baad me mene emotionally unavailable hone ke liye maafi bhi mangi" }
+      ],
+      "October 2026": [{ src: "oct 261.jpeg", text: "I discussed this whole incident with councellor multiple times, she asked how much excited you were for that day. I said i was waiting for that day from 2 months" },
+      { src: "oct 262.jpeg", text: "I told you I wanted to gift you something personal so learned piano" },
+      { src: "oct 263.jpeg", text: "Councellor asked, did you really love her, I said not as a partner. Councellor said you were very excited for that day, your anxiety took over your mind and because of that only you imagined her as your partner. Well I still didn't know why you asked me this question: Does that mean I am not good enough to be someone's partner?" },
+      { src: "oct 264.jpeg", text: "You said you were hurt because I didn't believed in you, but you also didn't believe in me and even denied to tell your friend's name. You directly compared him with me and comparison can make any person angry." },
+      { src: "oct 265.jpeg", text: "Mujhe abhi bhi yeh samajh nahi aa raha ki mene tumse ye kaise bol diya, tumne bhi apne aap ko defend karne ki jagah fine bol diya. me puri raat soya nahi tha, ghar par mahool bohot tensed tha me uski details to nahi bata paunga but it was horrible. I said sorry same day for this, it was biggest mistake of my life" },
+      { src: "oct chats.jpeg", text: "I met the councellor, but I didn't wanted to reveal your identity so i copied our 2 and 3 oct chats in a text file. I told you next day about it." },
+      { src: "oct 266.jpeg", text: "You already knew that this thing will trigger me but still you did" },
+      { src: "oct 267.jpeg", text: "You told that you revealed all my secrets, you broke your promise, you didn't even said sorry for this." },
+      { src: "oct 268.jpeg", text: "You put another accusition of harresment, do you even realize how a boy will feel after this accusition?" },
+      { src: "oct 269.jpeg", text: "I sent you this message, I thought I will forget you, but I was wrong" },
+      { src: "oct 2610.png", text: "Next day mene mummy se kaha ki kuch der mere pass baitho, mene unhe tumhare baare me bataya, unhe tum yaad thi, mene kaha mujhe bahut dukh ho raha hai ki mene apne sabse acchi dost kho di" }
+      ],
+    };
+
+    // EDIT MONTHS: change a month's label, month name, or summary here.
+    const monthlyData = [
+      { month: "July 2025", label: "Conversation Started", overview: "A long, warm conversation moved through school memories, distant family links, and future meeting.", focus: "Memories", wins: "3 threads", nextStep: "Messages found" },
+      { month: "August 2025", label: "Conversation Started", overview: "A short but trustful exchange blended.", focus: "Mythology", wins: "1 long chat", nextStep: "Messages found" },
+      { month: "September 2025", label: "Conversation Started", overview: "This was a meaningful month for trust, emotional support, and defining how you speak with each other.", focus: "Trust", wins: "4 threads", nextStep: "Messages found" },
+      { month: "October 2025", label: "Conversation Started", overview: "Work, studies, and future plans shaped the conversations, with the usual teasing and check-ins around them.", focus: "Ambition", wins: "4 threads", nextStep: "Messages found" },
+      { month: "November 2025", label: "Conversation Started", overview: "The chat held a mix of motivation, humour, and a more direct conversation about trust and fear of losing friends.", focus: "Reassurance", wins: "4 threads", nextStep: "Messages found" },
+      { month: "December 2025", label: "Conversation Started", overview: "Curiosity drove a lively month: media tastes, family stories, work, and the difference between analysis and simply enjoying something.", focus: "Curiosity", wins: "4 threads", nextStep: "Messages found" },
+      { month: "January 2026", label: "Conversation Started", overview: "The record is lighter this month, but it includes everyday plans and recommendations.", focus: "Boundaries", wins: "3 threads", nextStep: "Messages found" },
+      { month: "February 2026", label: "Conversation Started", overview: "A reflective month centred on relationships, being seen properly, career focus, and caring gestures that are remembered.", focus: "Being seen", wins: "4 threads", nextStep: "Messages found" },
+      { month: "March 2026", label: "Conversation Started", overview: "This was the richest month in the archive: openness, romance and film discussions, family values, privacy, and several moments of real vulnerability.", focus: "Openness", wins: "5 threads", nextStep: "Messages found" },
+      { month: "April 2026", label: "Conversation Started", overview: "The conversation became more scattered, but career transitions and everyday support remained visible.", focus: "Transition", wins: "3 threads", nextStep: "Messages found" },
+      { month: "May 2026", label: "Conversation Started", overview: "A sensitive month with more explanation than easy conversation. The record shows attempts to clarify meaning, make room for study and rest, and reset expectations.", focus: "Clarity", wins: "4 threads", nextStep: "Messages found" },
+      { month: "June 2026", label: "Conversation Started", overview: "Only a small number of messages, but they carry a gentle, caring tone.", focus: "Care", wins: "3 notes", nextStep: "Messages found" },
+      { month: "July 2026", label: "Conversation Started", overview: "Friendship recovery", focus: "No record", wins: "0 threads", nextStep: "No messages" },
+      { month: "August 2026", label: "Conversation Started", overview: "New deep and strongest bond emerged", focus: "No record", wins: "0 threads", nextStep: "No messages" },
+      { month: "September 2026", label: "Conversation Started", overview: "Your exams, parvati song", focus: "No record", wins: "0 threads", nextStep: "No messages" },
+      { month: "October 2026", label: "Conversation Started", overview: "I lost my mind for 24 hrs but because of that you were ready to end our childhood bond", focus: "No record", wins: "0 threads", nextStep: "No messages" },
+      { month: "Thankyou", label: "Thank You", overview: "Kisi se dosti rakhna ya naa rakhna sabka apna decision hota hai but kisi ki galat fehmi dur karna, ye to mera haq hai naa. I loved you with pure heart without any wrong intention, meri bas ek hi kamzori hai, mujhe mere apno ka mujhse roothna pasand nahi hai" }
+    ];
+
+    /*
+    // EDIT TEXT: change a month's overview here. The month name must match monthlyData.
+    const directMessages = {
+      "July 2025": { overview: "“Mujhe lgta h agrawals me zyadatr rishtedari nikl hi aati h..tum dekhna kisi din pta chlega hum log bhi dooooooor k rishtedar nikl aayenge😂😂”" },
+      "August 2025": { overview: "“He is very much fond of Modaks but that doesn't mean he is a foodie.”" },
+      "September 2025": { overview: "“Well to deal with such emotional distress, I think u should just listen to him and not give any advise.”" },
+      "October 2025": { overview: "“Abhi jis startup pe kaam kar raha hu, agar wo chal gaya to ek team iske liye bhi rakhunga.”" },
+      "November 2025": { overview: "“Mere parents ese nii h by the way..vo toh bhut motivate krte hn jb bhi me down feel krti hu.”" },
+      "December 2025": { overview: "“Over analyse krne k chakkr me uska mza hi kharab krdo sara.”" },
+      "January 2026": { overview: "“Arey stop this non sense shadi topic yrr..i m so done with this topic..jise dekho shadi shadi..”" },
+      "February 2026": { overview: "“She doesn’t fear marriage — she fears being unseen, unloved, and chosen out of convenience instead of heart.”" },
+      "March 2026": { overview: "“And i don't like alpha males..i like the soft emotional men..pookie males😅”" },
+      "April 2026": { overview: "“After that I need one good job offer from you.”" },
+      "May 2026": { overview: "“Every reel that I like or post doesn't mean its about me.”" },
+      "June 2026": { overview: "“Nii aaj srr drd ho rha h thoda isliye tym se soungi.”" },
+      "July 2026": { overview: "No messages for this month appear in the supplied exports." },
+      "August 2026": { overview: "No messages for this month appear in the supplied exports." },
+      "September 2026": { overview: "No messages for this month appear in the supplied exports." },
+      "October 2026": { overview: "No messages for this month appear in the supplied exports." }
+    };
+    */
+
+    let currentMonth = 0;
+    let thankyouUnlocked = false;
+    const elements = {
+      monthLabel: document.getElementById("monthLabel"),
+      heading: document.getElementById("monthHeading"),
+      overview: document.getElementById("overview"),
+      content: document.getElementById("summaryContent"), gallery: document.getElementById("photoGallery"),
+      voiceNotes: document.getElementById("voiceNotes"),
+      monthNav: document.getElementById("monthNav"),
+      trackingNotice: document.getElementById("trackingNotice")
+    };
+    const trackingConsentKey = "monthly-summary-tracking-consent";
+    const savedTrackingChoice = sessionStorage.getItem(trackingConsentKey);
+    let visitLoggingEnabled = savedTrackingChoice !== null;
+    // let ipCollectionAllowed = savedTrackingChoice === "accepted";
+    let visitorIp;
+    // elements.trackingNotice.hidden = savedTrackingChoice !== null;
+
+    function renderMonthNav() {
+      const visibleMonths = monthlyData
+        .map((monthData, index) => ({ monthData, index }))
+        .filter(({ monthData }) => monthData.month !== "Thankyou" || thankyouUnlocked);
+      elements.monthNav.replaceChildren(...visibleMonths.map(({ monthData, index }) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = monthData.month;
+        button.setAttribute("aria-current", index === currentMonth ? "true" : "false");
+        button.addEventListener("click", () => {
+          currentMonth = index;
+          renderMonth();
+        });
+        return button;
+      }));
+    }
+
+    function renderImages(monthData) {
+      const monthImages = catalogueImagesByMonth[monthData.month] ?? [];
+      elements.gallery.replaceChildren(...monthImages.map(({ src, text }) => {
+        const figure = document.createElement("figure");
+        figure.className = "catalogue-image";
+        const image = document.createElement("img");
+        image.src = src;
+        image.loading = "lazy";
+        figure.append(image);
+        const figcaption = document.createElement("figcaption");
+        const description = document.createElement("p");
+        description.textContent = text || monthData.overview || "Add a note for this photo here.";
+        figcaption.append(description);
+        figure.append(figcaption);
+        return figure;
+      }));
+      if (monthImages.length === 0) {
+        const emptyMessage = document.createElement("p");
+        emptyMessage.className = "edit-note";
+        emptyMessage.textContent = `Add images for ${monthData.month} in catalogueImagesByMonth.`;
+        elements.gallery.append(emptyMessage);
+      }
+    }
+
+    function renderMonth() {
+      const data = monthlyData[currentMonth];
+      if (data.month === "October 2026" && !thankyouUnlocked) {
+        thankyouUnlocked = true;
+        renderMonthNav();
+      }
+      elements.monthNav.querySelectorAll("button").forEach((button, index) => {
+        button.setAttribute("aria-current", index === currentMonth ? "true" : "false");
+      });
+      const isThankyouPage = data.month === "Thankyou";
+      elements.gallery.hidden = isThankyouPage;
+      elements.voiceNotes.hidden = !isThankyouPage;
+      if (isThankyouPage) {
+        elements.gallery.replaceChildren();
+      } else {
+        renderImages(data);
+      }
+      elements.monthLabel.textContent = data.label;
+      elements.heading.textContent = data.month;
+      elements.overview.textContent = data.overview;
+      elements.content.classList.remove("fade-in");
+      void elements.content.offsetWidth; // restart the short transition
+      elements.content.classList.add("fade-in");
+      if (visitLoggingEnabled) {
+        void logPageView(data.month);
+      }
+    }
+
+    async function logPageView(pageName, includeIp) {
+      try {
+        const visit = {
+          pageName,
+          timestamp: { ".sv": "timestamp" },
+          timestampReadable: new Intl.DateTimeFormat("en-IN", {
+            dateStyle: "medium",
+            timeStyle: "medium",
+            timeZone: "Asia/Kolkata"
+          }).format(new Date())
+        };
+        if (includeIp && !visitorIp) {
+          const ipResponse = await fetch("https://api.ipify.org?format=json");
+          if (!ipResponse.ok) {
+            throw new Error(`IP lookup failed with status ${ipResponse.status}.`);
+          }
+          const ipData = await ipResponse.json();
+          if (typeof ipData.ip !== "string" || ipData.ip.length === 0) {
+            throw new Error("IP lookup returned no IP address.");
+          }
+          visitorIp = ipData.ip;
+        }
+        if (includeIp) {
+          visit.ipAddress = visitorIp;
+        }
+
+        const databaseResponse = await fetch("https://dost-52300-default-rtdb.asia-southeast1.firebasedatabase.app/pageVisits.json", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(visit)
+        });
+        if (!databaseResponse.ok) {
+          throw new Error(`Firebase logging failed with status ${databaseResponse.status}.`);
+        }
+      } catch (error) {
+        console.error("Could not save the page view to Firebase.", error);
+      }
+    }
+
+    document.getElementById("previous").addEventListener("click", () => {
+      currentMonth = (currentMonth - 1 + monthlyData.length) % monthlyData.length;
+      renderMonth();
+    });
+    document.getElementById("next").addEventListener("click", () => {
+      currentMonth = (currentMonth + 1) % monthlyData.length;
+      renderMonth();
+    });
+    renderMonthNav();
+    renderMonth();
+  </script>
+</body>
+</html>
