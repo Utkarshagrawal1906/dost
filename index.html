@@ -342,7 +342,6 @@
     */
 
     let currentMonth = 0;
-    let thankyouUnlocked = false;
     const elements = {
       monthLabel: document.getElementById("monthLabel"),
       heading: document.getElementById("monthHeading"),
@@ -354,10 +353,7 @@
     let visitorIp;
 
     function renderMonthNav() {
-      const visibleMonths = monthlyData
-        .map((monthData, index) => ({ monthData, index }))
-        .filter(({ monthData }) => monthData.month !== "Thankyou" || thankyouUnlocked);
-      elements.monthNav.replaceChildren(...visibleMonths.map(({ monthData, index }) => {
+      elements.monthNav.replaceChildren(...monthlyData.map((monthData, index) => {
         const button = document.createElement("button");
         button.type = "button";
         button.textContent = monthData.month;
@@ -396,10 +392,6 @@
 
     function renderMonth() {
       const data = monthlyData[currentMonth];
-      if (data.month === "October 2026" && !thankyouUnlocked) {
-        thankyouUnlocked = true;
-        renderMonthNav();
-      }
       elements.monthNav.querySelectorAll("button").forEach((button, index) => {
         button.setAttribute("aria-current", index === currentMonth ? "true" : "false");
       });
